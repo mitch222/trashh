@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export default async function handler(req, res) {
   const { gameName, tagLine } = req.query;
-  const apiKey = process.env.REACT_APP_RIOT_API_KEY;
+  const apiKey = process.env.VITE_RIOT_API_KEY;
 
   if (!apiKey) {
     console.error('API key is missing');

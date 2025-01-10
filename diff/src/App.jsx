@@ -12,7 +12,8 @@ function App() {
     setError(null); // Resetea el error
     setPlayerData(null); // Resetea los datos
     try {
-      const response = await fetch(`/api/player?summonerName=${summonerName}`);
+      const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:3000";
+      const response = await fetch(`${apiUrl}/api/player?summonerName=${summonerName}`);
       if (!response.ok) throw new Error('Jugador no encontrado.');
       const data = await response.json();
       setPlayerData(data);

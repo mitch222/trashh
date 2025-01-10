@@ -1,10 +1,9 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React, { useState } from 'react';
+import './App.css';
 
 function App() {
-  const [summonerName, setSummonerName] = useState('');
+  const [gameName, setGameName] = useState(''); // Valor predeterminado
+  const [tagLine, setTagLine] = useState('');
   const [playerData, setPlayerData] = useState(null);
   const [error, setError] = useState(null);
 
@@ -12,8 +11,8 @@ function App() {
     setError(null); // Resetea el error
     setPlayerData(null); // Resetea los datos
     try {
-      const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:3000";
-      const response = await fetch(`${apiUrl}/api/player?summonerName=${summonerName}`);
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const response = await fetch(`${apiUrl}/api/player?gameName=${gameName}&tagLine=${tagLine}`);
       if (!response.ok) throw new Error('Jugador no encontrado.');
       const data = await response.json();
       setPlayerData(data);
@@ -25,23 +24,21 @@ function App() {
   return (
     <div className="App">
       <h1>Clon de OP.GG</h1>
-      <div>
-        <input
-          type="text"
-          placeholder="Ingresa el nombre del invocador"
-          value={summonerName}
-          onChange={(e) => setSummonerName(e.target.value)}
-        />
-        <button onClick={fetchPlayerData}>Buscar</button>
-      </div>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {playerData && (
-        <div>
-          <h2>Información del Jugador</h2>
-          <p><strong>Nombre:</strong> {playerData.name}</p>
-          <p><strong>Nivel:</strong> {playerData.summonerLevel}</p>
-        </div>
-      )}
+      <input
+        type="text"
+        placeholder="Ingresa el nombre de la cuenta"
+        value={gameName}
+        onChange={(e) => setGameName(e.target.value)}
+      />
+      <input
+        type="text"
+        placeholder="Ingresa el tag"
+        value={tagLine}
+        onChange={(e) => setTagLine(e.target.value)}
+      />
+      <button onClick={fetchPlayerData}>Buscar</button>
+      {error && <p>{error}</p>}
+      {playerData && <pre>{JSON.stringify(playerData, null, 2)}</pre>}
     </div>
   );
 }

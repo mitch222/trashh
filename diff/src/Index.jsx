@@ -6,8 +6,8 @@ import PlayerPage from './PlayerPage'; // Importa la nueva página
 const Index = () => (
   <Router>
     <Routes>
-      <Route path="/diff" element={<App />} />
-      <Route path="/diff/player" element={<PlayerPage />} />
+      <Route path="/" element={<App />} />
+      <Route path="/player" element={<PlayerPage />} />
     </Routes>
   </Router>
 );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './App.css';
 
 function App() {
@@ -6,6 +7,7 @@ function App() {
   const [tagLine, setTagLine] = useState('');
   const [playerData, setPlayerData] = useState(null);
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   const fetchPlayerData = async () => {
     setError(null); // Resetea el error
@@ -16,6 +18,7 @@ function App() {
       if (!response.ok) throw new Error('Jugador no encontrado.');
       const data = await response.json();
       setPlayerData(data);
+      navigate('/player', { state: { playerData: data } }); // Redirige a la nueva página con los datos del jugador
     } catch (err) {
       setError(err.message);
     }

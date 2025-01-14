@@ -13,5 +13,14 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
     },
+    server: {
+      proxy: {
+        '/api': {
+          target: 'https://trashh.vercel.app',
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
   }
 })

@@ -31,11 +31,21 @@ async function get_match_details(match_id, region) {
 async function filter_solo_duo_matches(puuid, region, count = 20) {
   const match_ids = await get_match_history(puuid, region, count);
   const solo_duo_matches = [];
-  console.log('Match IDs:', match_ids);
+
   for (const match_id of match_ids) {
     const match_data = await get_match_details(match_id, region);
     if (match_data.info.queueId === 420) { // Solo/Dúo
-      solo_duo_matches.push(match_data);
+      const participant = match_data.info.participants.find(p => p.puuid === puuid);
+      if (participant) {
+        solo_duo_matches.push({
+          summonerName: participant.summonerName,
+          championName: participant.championName,
+          kills: participant.kills,
+          deaths: participant.deaths,
+          assists: participant.assists,
+          visionScore: participant.visionScore,
+        });
+      }
     }
   }
 

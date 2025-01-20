@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key is missing' });
   }
 
-  console.log('Using API key:', apiKey); // Mensaje de depuración
+  console.log('Using API key:', apiKey);
   console.log('Fetching data for gameName:', gameName, 'and tagLine:', tagLine);
 
   try {

@@ -1,6 +1,7 @@
 {
     "rewrites": [
-      { "source": "/api/player", "destination": "/api/player" }
+      { "source": "/api/player", "destination": "/api/player" },
+      { "source": "/api/match", "destination": "/api/match" }
     ]
 }
   

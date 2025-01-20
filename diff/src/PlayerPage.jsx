@@ -1,6 +1,7 @@
 // filepath: /c:/Users/mitch/Documents/Cursos/trashh/diff/src/PlayerPage.jsx
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import MatchItem from './MatchItem';
 
 function PlayerPage() {
   const location = useLocation();
@@ -36,7 +37,9 @@ function PlayerPage() {
       )}
       <h2>Historial de Partidas</h2>
       {matchData ? (
-        <pre>{JSON.stringify(matchData, null, 2)}</pre>
+        matchData.map((match, index) => (
+          <MatchItem key={index} match={match} />
+        ))
       ) : (
         error && <p>{error}</p>
       )}

@@ -1,0 +1,28 @@
+.match-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  .team {
+    width: 45%;
+  }
+  
+  .team1 {
+    text-align: left;
+  }
+  
+  .team2 {
+    text-align: right;
+  }
+  
+  .participant {
+    margin-bottom: 10px;
+  }
+  
+  .participant p {
+    margin: 2px 0;
+  }

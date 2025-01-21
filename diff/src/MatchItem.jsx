@@ -13,9 +13,8 @@ function MatchItem({ match }) {
           <div key={index} className="participant">
             <p>Summoner: {participant.summonerName}</p>
             <p>Champion: {participant.championName}</p>
-            <p>Kills: {participant.kills}</p>
-            <p>Deaths: {participant.deaths}</p>
-            <p>Assists: {participant.assists}</p>
+            <p>Score: {participant.kills} / {participant.deaths} / {participant.assists}</p>
+            <p>KDA: {participant.deaths === 0 ? 'Perfect' : ((participant.kills + participant.assists) / participant.deaths).toFixed(2)}</p>
             <p>Vision Score: {participant.visionScore}</p>
           </div>
         ))}
@@ -26,9 +25,8 @@ function MatchItem({ match }) {
           <div key={index} className="participant">
             <p>Summoner: {participant.summonerName}</p>
             <p>Champion: {participant.championName}</p>
-            <p>Kills: {participant.kills}</p>
-            <p>Deaths: {participant.deaths}</p>
-            <p>Assists: {participant.assists}</p>
+            <p>Score: {participant.kills} / {participant.deaths} / {participant.assists}</p>
+            <p>KDA: {participant.deaths === 0 ? 'Perfect' : ((participant.kills + participant.assists) / participant.deaths).toFixed(2)}</p>
             <p>Vision Score: {participant.visionScore}</p>
           </div>
         ))}

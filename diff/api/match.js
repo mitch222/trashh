@@ -4,8 +4,8 @@ const API_KEY = process.env.VITE_RIOT_API_KEY;
 
 /**
  * @param {string} puuid - PUUID del jugador
- * @param {string} region - Regi n (e.g. na1, euw1, kr, etc.)
- * @param {number} [count=20] - N mero de partidas a obtener
+ * @param {string} region - Región (e.g. na1, euw1, kr, etc.)
+ * @param {number} [count=20] - Número de partidas a obtener
  * @returns {Promise<Array<string>>} - Lista de IDs de partidas
  */
 async function get_match_history(puuid, region, count = 20) {
@@ -18,8 +18,8 @@ async function get_match_history(puuid, region, count = 20) {
 
 /**
  * @param {string} match_id - ID de la partida
- * @param {string} region - Regi n (e.g. na1, euw1, kr, etc.)
- * @returns {Promise<Object>} - Informaci n de la partida con el ID <code>match_id</code>
+ * @param {string} region - Región (e.g. na1, euw1, kr, etc.)
+ * @returns {Promise<Object>} - Información de la partida con el ID <code>match_id</code>
  */
 async function get_match_details(match_id, region) {
   const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${match_id}`;
@@ -28,27 +28,30 @@ async function get_match_details(match_id, region) {
   return response.data;
 }
 
+/**
+ * @param {string} puuid - PUUID del jugador
+ * @param {string} region - Región (e.g. na1, euw1, kr, etc.)
+ * @param {number} [count=20] - Número de partidas a obtener
+ * @returns {Promise<Array<Object>>} - Lista de partidas de Solo/Dúo con información de los participantes
+ */
 async function filter_solo_duo_matches(puuid, region, count = 20) {
   const match_ids = await get_match_history(puuid, region, count);
-  const solo_duo_matches = [];
+  const match_details_promises = match_ids.map(match_id => get_match_details(match_id, region));
+  const match_details = await Promise.all(match_details_promises);
 
-  for (const match_id of match_ids) {
-    const match_data = await get_match_details(match_id, region);
-    if (match_data.info.queueId === 420) { // Solo/Dúo
-      const participants = match_data.info.participants.map(participant => ({
+  const solo_duo_matches = match_details
+    .filter(match_data => match_data.info.queueId === 420) // Solo/Dúo
+    .map(match_data => ({
+      matchId: match_data.metadata.matchId,
+      participants: match_data.info.participants.map(participant => ({
         summonerName: participant.summonerName,
         championName: participant.championName,
         kills: participant.kills,
         deaths: participant.deaths,
         assists: participant.assists,
         visionScore: participant.visionScore,
-      }));
-      solo_duo_matches.push({
-        matchId: match_id,
-        participants: participants,
-      });
-    }
-  }
+      })),
+    }));
 
   return solo_duo_matches;
 }

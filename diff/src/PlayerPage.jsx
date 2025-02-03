@@ -14,7 +14,7 @@ function PlayerPage() {
       const fetchMatchData = async () => {
         try {
           const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5173";
-          const response = await fetch(`${apiUrl}/api/match?puuid=${playerData.puuid}&region=americas`);
+          const response = await fetch(`${apiUrl}/api/match?puuid=${playerData.puuid}&region=${playerData.region}`);
           if (!response.ok) throw new Error('Error fetching match data.');
           const data = await response.json();
           setMatchData(data);

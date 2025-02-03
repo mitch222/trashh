@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-  const { gameName, tagLine } = req.query;
+  const { gameName, tagLine, region } = req.query;
   const apiKey = process.env.VITE_RIOT_API_KEY;
 
   if (!apiKey) {
@@ -9,14 +9,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API key is missing' });
   }
 
-  console.log('Using API key:', apiKey);
-  console.log('Fetching data for gameName:', gameName, 'and tagLine:', tagLine);
-
   try {
     const response = await axios.get(
-      `https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`,
+      `https://${region}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`,
       { headers: { 'X-Riot-Token': apiKey } }
     );
+    console.log('hola');
     res.status(200).json(response.data); // Envía los datos al frontend
   } catch (error) {
     console.error('Error fetching data from Riot API:', error.message);

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await axios.get(`https://${region}.api.riotgames.com/lol/summoner/v4/summoners/by-name/${gameName}`, {
+    const response = await axios.get(`https://${region}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${gameName}/${tagLine}`, {
       headers: {
         'X-Riot-Token': apiKey
       }

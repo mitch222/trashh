@@ -105,7 +105,7 @@ function formatMatchData(matchData) {
     id: matchData.metadata.matchId,
     duration: matchData.info.gameDuration,
     participants: matchData.info.participants.map(p => ({
-      summonerName: p.summonerName,
+      summonerName: p.riotIdGameName,
       championName: p.championName,
       kills: p.kills,
       deaths: p.deaths,

@@ -1,73 +1,117 @@
 import axios from 'axios';
+import pLimit from 'p-limit';
 
 const API_KEY = process.env.VITE_RIOT_API_KEY;
+const CONCURRENCY = 3; // Máximo de solicitudes paralelas
+const REQUEST_TIMEOUT = 4000; // 4 segundos por solicitud
+const GLOBAL_TIMEOUT = 9000; // 9 segundos (deja 1s margen para Vercel)
 
 // Configuración global de Axios
-axios.defaults.headers.common['X-Riot-Token'] = API_KEY;
+const riotApi = axios.create({
+  headers: { 'X-Riot-Token': API_KEY },
+  timeout: REQUEST_TIMEOUT
+});
 
-async function getMatchHistory(puuid, region, count = 20) {
-  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
-  const params = { start: 0, count: count };
-  const response = await axios.get(url, { params });
-  return response.data;
-}
-
-async function getMatchDetails(matchId, region, retries = 3) {
-  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
-  try {
-    const response = await axios.get(url);
-    return response.data;
-  } catch (error) {
-    if (error.response && error.response.status === 429 && retries > 0) {
-      const retryAfter = parseInt(error.response.headers['retry-after'], 10) || 1;
-      console.warn(`Rate limit exceeded. Retrying after ${retryAfter} seconds...`);
-      await delay(retryAfter * 1000);
-      return getMatchDetails(matchId, region, retries - 1);
-    } else {
-      console.error(`Error fetching match details for ${matchId}:`, error.message);
-      throw error;
-    }
-  }
-}
-
-async function filterSoloDuoMatches(puuid, region, count = 20) {
-  const matchIds = await getMatchHistory(puuid, region, count);
-  const matches = [];
-  
-  for (const matchId of matchIds) {
-    try {
-      const matchData = await getMatchDetails(matchId, region);
-      if (matchData.info.queueId === 420) {
-        matches.push({
-          metadata: matchData.metadata,
-          info: matchData.info
-        });
-      }
-      await delay(1000); // Añade un retraso de 1 segundo entre las solicitudes
-    } catch (error) {
-      console.error(`Error in match ${matchId}:`, error.message);
-    }
-  }
-  console.log(`Matches found: ${matches.length}`);
-  return matches;
-}
+// Limitador de concurrencia
+const limit = pLimit(CONCURRENCY);
 
 export default async function handler(req, res) {
-  const { puuid, region, count = 20 } = req.query;
-  console.log(`Fetching matches for ${puuid} in ${region}`);
+  // Configuración CORS
+  res.setHeader('Access-Control-Allow-Origin', 'https://trashh.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Timeout global
+  const timeout = setTimeout(() => {
+    res.status(504).json({ error: 'Timeout excedido', code: 'GLOBAL_TIMEOUT' });
+  }, GLOBAL_TIMEOUT);
+
   try {
-    const matches = await filterSoloDuoMatches(puuid, region, count);
-    console.log(`Matches fetched successfully: ${matches.length}`);
-    res.status(200).json(matches);
+    const { puuid, region, count = 10 } = req.query; // Reducido a 10 por defecto
+    
+    // Validación de parámetros
+    if (!puuid || !region) {
+      throw new Error('Parámetros requeridos: puuid y region');
+    }
+
+    // Obtener historial de partidas
+    const matchIds = await getMatchHistory(puuid, region, Math.min(count, 15)); // Limitar máximo
+    
+    // Procesar en paralelo controlado
+    const matches = await processMatches(matchIds, region);
+    
+    clearTimeout(timeout);
+    res.status(200).json(matches.slice(0, count));
+    
   } catch (error) {
-    console.error(`Error in handler: ${error.message}`);
+    clearTimeout(timeout);
     res.status(error.response?.status || 500).json({
       error: error.message,
-      details: error.response?.data || null,
+      code: error.response?.status || 'INTERNAL_ERROR'
     });
   }
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function getMatchHistory(puuid, region, count) {
+  const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
+  const { data } = await riotApi.get(url, {
+    params: { count },
+    timeout: REQUEST_TIMEOUT
+  });
+  return data;
 }
+
+async function processMatches(matchIds, region) {
+  const matches = [];
+  
+  const promises = matchIds.map(matchId => 
+    limit(async () => {
+      try {
+        const matchData = await getMatchDetails(matchId, region);
+        if (matchData.info.queueId === 420) {
+          matches.push(formatMatchData(matchData));
+        }
+      } catch (error) {
+        console.error(`Error en match ${matchId}:`, error.message);
+      }
+    })
+  );
+
+  await Promise.all(promises);
+  return matches;
+}
+
+async function getMatchDetails(matchId, region, retries = 2) {
+  try {
+    const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
+    const { data } = await riotApi.get(url);
+    return data;
+    
+  } catch (error) {
+    if (error.response?.status === 429 && retries > 0) {
+      const retryAfter = (error.response.headers['retry-after'] || 1) * 1000;
+      await delay(retryAfter);
+      return getMatchDetails(matchId, region, retries - 1);
+    }
+    throw error;
+  }
+}
+
+function formatMatchData(matchData) {
+  return {
+    id: matchData.metadata.matchId,
+    duration: matchData.info.gameDuration,
+    participants: matchData.info.participants.map(p => ({
+      champion: p.championName,
+      kills: p.kills,
+      deaths: p.deaths,
+      assists: p.assists,
+      win: p.win
+    }))
+  };
+}
+
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));

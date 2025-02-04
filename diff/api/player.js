@@ -22,6 +22,8 @@ export default async function handler(req, res) {
   const { gameName, tagLine, region } = req.query;
   const apiKey = process.env.RIOT_API_KEY; // Mejor nombre para variable de entorno
 
+  console.log(apiKey);
+
   if (!apiKey) {
     return res.status(500).json({ 
       error: 'Server configuration error: API key missing',

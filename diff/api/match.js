@@ -1,7 +1,7 @@
 import axios from 'axios';
 import pLimit from 'p-limit';
 
-const API_KEY = process.env.VITE_RIOT_API_KEY;
+const API_KEY = process.env.RIOT_API_KEY;
 const CONCURRENCY = 3; // Máximo de solicitudes paralelas
 const REQUEST_TIMEOUT = 4000; // 4 segundos por solicitud
 const GLOBAL_TIMEOUT = 9000; // 9 segundos (deja 1s margen para Vercel)

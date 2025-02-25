@@ -16,10 +16,19 @@ const riotApi = axios.create({
 const limit = pLimit(CONCURRENCY);
 
 export default async function handler(req, res) {
-  // Configuración CORS
-  res.setHeader('Access-Control-Allow-Origin', 'https://trashh.vercel.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  
+
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://trashh.vercel.app'
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+
+  // Manejar solicitud OPTIONS (preflight)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }

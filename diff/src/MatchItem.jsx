@@ -13,6 +13,13 @@ function MatchItem({ match }) {
           <div key={index} className="participant">
             <p>Summoner: {participant.summonerName}</p>
             <p>Champion: {participant.championName}</p>
+            <img 
+              src={`https://ddragon.leagueoflegends.com/cdn/15.4.1/img/champion/${participant.championName}.png`}
+              alt={championName}
+              onError={(e) => {
+                e.target.src = '/placeholder-champion.jpg'; // Imagen de respaldo
+              }}
+            />
             <p>Score: {participant.kills} / {participant.deaths} / {participant.assists}</p>
             <p>KDA: {participant.deaths === 0 ? 'Perfect' : ((participant.kills + participant.assists) / participant.deaths).toFixed(2)}</p>
             <p>Vision Score: {participant.visionScore}</p>

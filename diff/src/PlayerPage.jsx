@@ -13,7 +13,7 @@ function PlayerPage() {
     if (playerData && playerData.puuid) {
       const fetchMatchData = async () => {
         try {
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+          const apiUrl = import.meta.env.VITE_API_URL;
           const response = await fetch(`${apiUrl}/api/match?puuid=${playerData.puuid}&region=${playerData.region}`);
           if (!response.ok) throw new Error('Error fetching match data.');
           const data = await response.json();

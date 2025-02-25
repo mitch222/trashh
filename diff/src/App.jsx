@@ -14,7 +14,7 @@ function App() {
     setError(null); // Resetea el error
     setPlayerData(null); // Resetea los datos
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+      const apiUrl = import.meta.env.VITE_API_URL;
       const response = await fetch(`${apiUrl}/api/player?gameName=${gameName}&tagLine=${tagLine}&region=${region}`);
       if (!response.ok) throw new Error('Jugador no encontrado.');
       const data = await response.json();

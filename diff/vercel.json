@@ -1,6 +1,16 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "**/*.js", "use": "@vercel/node" }
-  ]
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "http://localhost:3000 https://trashh.vercel.app" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ],
+    "rewrites": [
+      { "source": "/api/player", "destination": "/api/player" },
+      { "source": "/api/match", "destination": "/api/match" }
+    ]
 }

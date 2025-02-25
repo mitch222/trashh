@@ -1,6 +1,5 @@
 import axios from 'axios';
 import pLimit from 'p-limit';
-import { corsHeaders } from '../lib/cors';
 
 const API_KEY = process.env.RIOT_API_KEY;
 const CONCURRENCY = 3; // Máximo de solicitudes paralelas
@@ -17,8 +16,19 @@ const riotApi = axios.create({
 const limit = pLimit(CONCURRENCY);
 
 export default async function handler(req, res) {
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'https://trashh.vercel.app'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  corsHeaders(req, res);
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   // Manejar preflight
   if (req.method === 'OPTIONS') {

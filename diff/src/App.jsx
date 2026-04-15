@@ -4,41 +4,46 @@ import { Header } from './components/Header';
 import { Button, Input, Select } from './components/ui';
 
 const REGIONS = [
-  { value: 'americas', label: 'North America' },
-  { value: 'americas', label: 'LAN' },
-  { value: 'americas', label: 'LAS' },
-  { value: 'americas', label: 'Brazil' },
-  { value: 'europe', label: 'Europe West' },
-  { value: 'europe', label: 'Europe Nordic & East' },
-  { value: 'europe', label: 'Turkey' },
-  { value: 'asia', label: 'Korea' },
-  { value: 'asia', label: 'Japan' },
-  { value: 'asia', label: 'Oceania' },
-  { value: 'asia', label: 'Russia' },
+  { value: 'americas_na', label: 'North America' },
+  { value: 'americas_lan', label: 'LAN' },
+  { value: 'americas_las', label: 'LAS' },
+  { value: 'americas_br', label: 'Brazil' },
+  { value: 'europe_euw', label: 'Europe West' },
+  { value: 'europe_eune', label: 'Europe Nordic & East' },
+  { value: 'europe_tr', label: 'Turkey' },
+  { value: 'asia_kr', label: 'Korea' },
+  { value: 'asia_jp', label: 'Japan' },
+  { value: 'oceania', label: 'Oceania' },
+  { value: 'europe_ru', label: 'Russia' },
 ];
 
 const REGION_PLATFORMS = {
   americas: 'americas.api.riotgames.com',
+  americas_na: 'americas.api.riotgames.com',
+  americas_lan: 'americas.api.riotgames.com',
+  americas_las: 'americas.api.riotgames.com',
+  americas_br: 'americas.api.riotgames.com',
   europe: 'europe.api.riotgames.com',
+  europe_euw: 'europe.api.riotgames.com',
+  europe_eune: 'europe.api.riotgames.com',
+  europe_tr: 'europe.api.riotgames.com',
+  europe_ru: 'europe.api.riotgames.com',
   asia: 'asia.api.riotgames.com',
+  asia_kr: 'asia.api.riotgames.com',
+  asia_jp: 'asia.api.riotgames.com',
+  oceania: 'oceania.api.riotgames.com',
 };
 
 function App() {
   const [gameName, setGameName] = useState('');
   const [tagLine, setTagLine] = useState('');
-  const [region, setRegion] = useState('americas');
-  const [platform, setPlatform] = useState('americas');
+  const [region, setRegion] = useState('americas_na');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegionChange = (e) => {
-    const selectedLabel = e.target.options[e.target.selectedIndex].text;
-    const regionData = REGIONS.find(r => r.label === selectedLabel);
-    if (regionData) {
-      setRegion(regionData.value);
-      setPlatform(selectedLabel);
-    }
+    setRegion(e.target.value);
   };
 
   const fetchPlayerData = async () => {
@@ -121,7 +126,7 @@ function App() {
             
             <Select
               label="Región"
-              value={platform}
+              value={region}
               onChange={handleRegionChange}
               options={REGIONS}
             />

@@ -16,6 +16,7 @@ export function Input({
           w-full px-4 py-2.5 border rounded-lg transition-all duration-200
           focus:outline-none focus:ring-2 focus:border-transparent
           placeholder-gray-400 dark:placeholder-gray-500
+          text-gray-900 dark:text-white
           ${error 
             ? 'border-red-500 focus:ring-red-400 bg-red-50 dark:bg-red-900/20' 
             : 'border-gray-300 focus:ring-lol-blue-500 dark:bg-lol-dark-200 dark:border-gray-600'

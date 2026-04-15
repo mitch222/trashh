@@ -124,14 +124,14 @@ function formatMatchData(matchData) {
       
       healing: p.healing || 0,
       healingDoneToAllies: p.healingDoneToAllies || 0,
-      shielding: p.shielding || 0,
+      shielding: p.totalDamageShieldedOnTeammates || 0,
       shieldsGranted: p.shieldsGranted || 0,
       
       goldEarned: p.goldEarned || 0,
       goldSpent: p.goldSpent || 0,
       totalDamageDealt: p.totalDamageDealt || 0,
       totalDamageDealtToChampions: p.totalDamageDealtToChampions || 0,
-      totalHeal: p.totalHeal || 0,
+      totalHeal: p.totalHealsOnTeammates || 0,
       totalUnitsHealed: p.totalUnitsHealed || 0,
       
       turretKills: p.turretKills || 0,

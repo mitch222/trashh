@@ -1,68 +1,54 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@theme {
+  --color-lol-blue-50: #e6f3ff;
+  --color-lol-blue-100: #cce0ff;
+  --color-lol-blue-200: #99c2ff;
+  --color-lol-blue-300: #66a3ff;
+  --color-lol-blue-400: #3385ff;
+  --color-lol-blue-500: #0a66ff;
+  --color-lol-blue-600: #0052cc;
+  --color-lol-blue-700: #003d99;
+  --color-lol-blue-800: #002966;
+  --color-lol-blue-900: #001433;
+  
+  --color-lol-gold-50: #fffbeb;
+  --color-lol-gold-100: #fef3c7;
+  --color-lol-gold-200: #fde68a;
+  --color-lol-gold-300: #fcd34d;
+  --color-lol-gold-400: #fbbf24;
+  --color-lol-gold-500: #d4a520;
+  --color-lol-gold-600: #b8860b;
+  --color-lol-gold-700: #8b6508;
+  --color-lol-gold-800: #5c4405;
+  --color-lol-gold-900: #2d2203;
+  
+  --color-lol-dark-100: #1a1a2e;
+  --color-lol-dark-200: #16213e;
+  --color-lol-dark-300: #0f3460;
+  --color-lol-dark-400: #1a1a2e;
+  --color-lol-dark-500: #0d0d0d;
+  --color-lol-dark-600: #0a0a0a;
+  
+  --color-lol-win: #528eef;
+  --color-lol-loss: #e84057;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  --font-family-sans: 'Inter', system-ui, sans-serif;
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slide-up {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+html {
+  scroll-behavior: smooth;
 }

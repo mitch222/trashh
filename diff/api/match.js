@@ -2,17 +2,15 @@ import axios from 'axios';
 import pLimit from 'p-limit';
 
 const API_KEY = process.env.RIOT_API_KEY;
-const CONCURRENCY = 3; // Máximo de solicitudes paralelas
-const REQUEST_TIMEOUT = 4000; // 4 segundos por solicitud
-const GLOBAL_TIMEOUT = 9000; // 9 segundos (deja 1s margen para Vercel)
+const CONCURRENCY = 3;
+const REQUEST_TIMEOUT = 4000;
+const GLOBAL_TIMEOUT = 9000;
 
-// Configuración global de Axios
 const riotApi = axios.create({
   headers: { 'X-Riot-Token': API_KEY },
   timeout: REQUEST_TIMEOUT
 });
 
-// Limitador de concurrencia
 const limit = pLimit(CONCURRENCY);
 
 export default async function handler(req, res) {
@@ -30,28 +28,18 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Manejar preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Timeout global
   const timeout = setTimeout(() => {
     res.status(504).json({ error: 'Timeout excedido', code: 'GLOBAL_TIMEOUT' });
   }, GLOBAL_TIMEOUT);
 
   try {
-    const { puuid, region, count = 10 } = req.query; // Reducido a 10 por defecto
+    const { puuid, region, count = 10 } = req.query;
     
-    // Validación de parámetros
     if (!puuid || !region) {
       throw new Error('Parámetros requeridos: puuid y region');
     }
 
-    // Obtener historial de partidas
-    const matchIds = await getMatchHistory(puuid, region, Math.min(count, 15)); // Limitar máximo
-    
-    // Procesar en paralelo controlado
+    const matchIds = await getMatchHistory(puuid, region, Math.min(count, 15));
     const matches = await processMatches(matchIds, region);
     
     clearTimeout(timeout);
@@ -115,13 +103,60 @@ function formatMatchData(matchData) {
   return {
     id: matchData.metadata.matchId,
     duration: matchData.info.gameDuration,
+    queueId: matchData.info.queueId,
+    gameMode: matchData.info.gameMode,
     participants: matchData.info.participants.map(p => ({
       summonerName: p.riotIdGameName,
       championName: p.championName,
+      teamId: p.teamId,
       kills: p.kills,
       deaths: p.deaths,
       assists: p.assists,
-      win: p.win
+      win: p.win,
+      visionScore: p.visionScore || 0,
+      
+      wardsPlaced: p.wardsPlaced || 0,
+      wardsDestroyed: p.wardsDestroyed || 0,
+      visionWardsBoughtInGame: p.visionWardsBoughtInGame || 0,
+      controlWardsPlaced: p.controlWardsPlaced || 0,
+      
+      timeCCingOthers: p.timeCCingOthers || 0,
+      
+      healing: p.healing || 0,
+      healingDoneToAllies: p.healingDoneToAllies || 0,
+      shielding: p.shielding || 0,
+      shieldsGranted: p.shieldsGranted || 0,
+      
+      goldEarned: p.goldEarned || 0,
+      goldSpent: p.goldSpent || 0,
+      totalDamageDealt: p.totalDamageDealt || 0,
+      totalDamageDealtToChampions: p.totalDamageDealtToChampions || 0,
+      totalHeal: p.totalHeal || 0,
+      totalUnitsHealed: p.totalUnitsHealed || 0,
+      
+      turretKills: p.turretKills || 0,
+      inhibitorKills: p.inhibitorKills || 0,
+      objectivesStolen: p.objectivesStolen || 0,
+      
+      championLevel: p.championLevel || 0,
+      doubleKills: p.doubleKills || 0,
+      tripleKills: p.tripleKills || 0,
+      quadraKills: p.quadraKills || 0,
+      pentakills: p.pentaKills || 0,
+      
+      item0: p.item0,
+      item1: p.item1,
+      item2: p.item2,
+      item3: p.item3,
+      item4: p.item4,
+      item5: p.item5,
+      item6: p.item6,
+      
+      perks: p.perks || {},
+      summoner1Id: p.summoner1Id,
+      summoner2Id: p.summoner2Id,
+      role: p.role,
+      lane: p.lane,
     }))
   };
 }

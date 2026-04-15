@@ -4,40 +4,23 @@ import { Header } from './components/Header';
 import { Button, Input, Select } from './components/ui';
 
 const REGIONS = [
-  { value: 'americas_na', label: 'North America' },
-  { value: 'americas_lan', label: 'LAN' },
-  { value: 'americas_las', label: 'LAS' },
-  { value: 'americas_br', label: 'Brazil' },
-  { value: 'europe_euw', label: 'Europe West' },
-  { value: 'europe_eune', label: 'Europe Nordic & East' },
-  { value: 'europe_tr', label: 'Turkey' },
-  { value: 'asia_kr', label: 'Korea' },
-  { value: 'asia_jp', label: 'Japan' },
-  { value: 'oceania', label: 'Oceania' },
-  { value: 'europe_ru', label: 'Russia' },
+  { value: 'americas', label: 'Americas (NA, LAN, LAS, BR)' },
+  { value: 'europe', label: 'Europe (EUW, EUNE, TR, RU)' },
+  { value: 'asia', label: 'Asia (KR, JP)' },
+  { value: 'sea', label: 'Sea (OCE, SG, TW, VN)' },
 ];
 
 const REGION_PLATFORMS = {
   americas: 'americas.api.riotgames.com',
-  americas_na: 'americas.api.riotgames.com',
-  americas_lan: 'americas.api.riotgames.com',
-  americas_las: 'americas.api.riotgames.com',
-  americas_br: 'americas.api.riotgames.com',
   europe: 'europe.api.riotgames.com',
-  europe_euw: 'europe.api.riotgames.com',
-  europe_eune: 'europe.api.riotgames.com',
-  europe_tr: 'europe.api.riotgames.com',
-  europe_ru: 'europe.api.riotgames.com',
   asia: 'asia.api.riotgames.com',
-  asia_kr: 'asia.api.riotgames.com',
-  asia_jp: 'asia.api.riotgames.com',
-  oceania: 'oceania.api.riotgames.com',
+  sea: 'sea.api.riotgames.com',
 };
 
 function App() {
   const [gameName, setGameName] = useState('');
   const [tagLine, setTagLine] = useState('');
-  const [region, setRegion] = useState('americas_na');
+  const [region, setRegion] = useState('americas');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

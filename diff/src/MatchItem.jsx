@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Badge } from './components/ui';
 
-const ITEM_VERSION = '15.4.1';
+const ITEM_VERSION = '16.8.1';
 
 function MatchItem({ match, playerName }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -14,7 +14,12 @@ function MatchItem({ match, playerName }) {
   const minutes = Math.floor(duration / 60);
   const seconds = duration % 60;
 
-  const getSupport = (team) => team.find(p => p.lane === 'BOTTOM' && p.role === 'SUPPORT');
+  const getSupport = (team) => {
+    return team.find(p => 
+      p.role === 'SUPPORT' || 
+      p.role === 'DUO_SUPPORT'
+      );
+  };
   
   const blueSupport = getSupport(team1);
   const redSupport = getSupport(team2);
@@ -106,7 +111,14 @@ function MatchItem({ match, playerName }) {
               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
             </svg>
             <span className="text-gray-600 dark:text-gray-400">Healing:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">{support.healing?.toLocaleString() || 0}</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{support.totalHeal?.toLocaleString() || 0}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-2 2A1 1 0 004 11h3v3a1 1 0 001 1h3a1 1 0 001-1v-3h3a1 1 0 00.707-1.707l-2-2A1 1 0 0013 8.172V4.414l.707-.707A1 1 0 0013 2H7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd"/>
+            </svg>
+            <span className="text-gray-600 dark:text-gray-400">Aliados:</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{support.totalHealsOnTeammates?.toLocaleString() || 0}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">

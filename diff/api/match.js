@@ -1,5 +1,6 @@
 import pLimit from 'p-limit';
 import { riotApi, setCorsHeaders, handleOptions, delay } from './utils/api.js';
+import { formatMatchData } from './lib/formatMatchData.js';
 
 const CONCURRENCY = 3;
 const GLOBAL_TIMEOUT = 9000;
@@ -21,21 +22,33 @@ export default async function handler(req, res) {
   }, GLOBAL_TIMEOUT);
 
   try {
-    const { puuid, region, count = 10 } = req.query;
-    
+    const { puuid, region, count = 10, start = 0 } = req.query;
+
     if (!puuid || !region) {
       throw new Error('Parámetros requeridos: puuid y region');
     }
 
-    const matchIds = await getMatchHistory(puuid, region, Math.min(count, 15));
+    const effectiveCount = Math.min(Number(count) || 10, 15);
+    const effectiveStart = Math.max(Number(start) || 0, 0);
+
+    const matchIds = await getMatchHistory(puuid, region, effectiveCount, effectiveStart);
     const matches = await processMatches(matchIds, region);
-    
+
     clearTimeout(timeout);
     if (!responded) {
       responded = true;
-      res.status(200).json(matches.slice(0, count));
+      // hasMore is about the RAW match id page, not the ranked-only filtered
+      // count below: a full page of ids means there may be more history to
+      // page into, even if this particular page happened to contain few (or
+      // zero) ranked games. The client advances `start` by effectiveCount on
+      // every "load more" regardless of how many matches this page yielded,
+      // so pagination stays correct even through non-ranked gaps.
+      res.status(200).json({
+        matches: matches.slice(0, effectiveCount),
+        hasMore: matchIds.length === effectiveCount,
+      });
     }
-    
+
   } catch (error) {
     clearTimeout(timeout);
     if (!responded) {
@@ -48,9 +61,9 @@ export default async function handler(req, res) {
   }
 }
 
-async function getMatchHistory(puuid, region, count) {
+async function getMatchHistory(puuid, region, count, start = 0) {
   const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids`;
-  const { data } = await riotApi.get(url, { params: { count } });
+  const { data } = await riotApi.get(url, { params: { count, start } });
   return data;
 }
 
@@ -85,58 +98,4 @@ async function getMatchDetails(matchId, region, retries = 2) {
     }
     throw error;
   }
-}
-
-function formatMatchData(matchData) {
-  return {
-    id: matchData.metadata.matchId,
-    duration: matchData.info.gameDuration,
-    queueId: matchData.info.queueId,
-    gameMode: matchData.info.gameMode,
-    participants: matchData.info.participants.map(p => ({
-      summonerName: p.riotIdGameName,
-      championName: p.championName,
-      teamId: p.teamId,
-      kills: p.kills,
-      deaths: p.deaths,
-      assists: p.assists,
-      win: p.win,
-      visionScore: p.visionScore || 0,
-      wardsPlaced: p.wardsPlaced || 0,
-      wardsDestroyed: p.wardsDestroyed || 0,
-      visionWardsBoughtInGame: p.visionWardsBoughtInGame || 0,
-      controlWardsPlaced: p.controlWardsPlaced || 0,
-      timeCCingOthers: p.timeCCingOthers || 0,
-      healing: p.totalHealsOnTeammates || 0,
-      healingDoneToAllies: p.totalHealsOnTeammates || 0,
-      shielding: p.totalDamageShieldedOnTeammates || 0,
-      shieldsGranted: p.shieldsGranted || 0,
-      goldEarned: p.goldEarned || 0,
-      goldSpent: p.goldSpent || 0,
-      totalDamageDealt: p.totalDamageDealt || 0,
-      totalDamageDealtToChampions: p.totalDamageDealtToChampions || 0,
-      totalHeal: p.totalHeal || 0,
-      totalUnitsHealed: p.totalUnitsHealed || 0,
-      turretKills: p.turretKills || 0,
-      inhibitorKills: p.inhibitorKills || 0,
-      objectivesStolen: p.objectivesStolen || 0,
-      championLevel: p.championLevel || 0,
-      doubleKills: p.doubleKills || 0,
-      tripleKills: p.tripleKills || 0,
-      quadraKills: p.quadraKills || 0,
-      pentakills: p.pentaKills || 0,
-      item0: p.item0,
-      item1: p.item1,
-      item2: p.item2,
-      item3: p.item3,
-      item4: p.item4,
-      item5: p.item5,
-      item6: p.item6,
-      perks: p.perks || {},
-      summoner1Id: p.summoner1Id,
-      summoner2Id: p.summoner2Id,
-      role: p.role,
-      lane: p.lane,
-    }))
-  };
 }

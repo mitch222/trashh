@@ -5,3 +5,4 @@ export { Card } from './Card';
 export { Badge } from './Badge';
 export { StatCard } from './StatCard';
 export { Skeleton } from './Skeleton';
+export { Slider } from './Slider';

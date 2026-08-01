@@ -1,0 +1,63 @@
+name: Update Data Dragon version
+
+# Checks weekly for a newer Data Dragon patch than the one pinned in
+# diff/src/lib/items.js (ITEM_VERSION) — the version every champion/item/
+# profile-icon/map image URL in the app is built from. If a newer version
+# exists AND its CDN assets are confirmed live (scripts/update-ddragon-version.mjs
+# probes one asset per family before touching anything), this opens a PR
+# with the bump. Nothing merges automatically.
+#
+# NOTE: PRs opened with the default GITHUB_TOKEN do not trigger other
+# workflows (GitHub's loop-prevention rule), so CI will NOT auto-run on
+# these PRs — re-run it manually (or push an empty commit) before merging.
+# To get automatic CI on these PRs instead, add a personal access token as
+# a repo secret and pass it via `token:` below.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Mondays 09:00 UTC
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: diff
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: diff/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check for a newer, fully-live Data Dragon version
+        run: npm run update-ddragon-version
+
+      - name: Open a PR if the version was bumped
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: bump Data Dragon ITEM_VERSION'
+          title: 'chore: bump Data Dragon ITEM_VERSION'
+          body: |
+            Automated bump of `ITEM_VERSION` in `diff/src/lib/items.js`, opened by
+            the `update-ddragon-version` workflow.
+
+            Before opening this PR, `scripts/update-ddragon-version.mjs` confirmed
+            the new version actually serves a champion icon, an item icon, a
+            profile icon, and the Summoner's Rift minimap — so the bump shouldn't
+            break any image in the app. Still worth a quick manual look at the
+            player page before merging.
+          branch: chore/update-ddragon-version
+          delete-branch: true
+          add-paths: diff/src/lib/items.js

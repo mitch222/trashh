@@ -2,66 +2,37 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Button, Input, Select } from './components/ui';
-
-const REGIONS = [
-  { value: 'americas', label: 'Americas (NA, LAN, LAS, BR)' },
-  { value: 'europe', label: 'Europe (EUW, EUNE, TR, RU)' },
-  { value: 'asia', label: 'Asia (KR, JP)' },
-  { value: 'sea', label: 'Sea (OCE, SG, TW, VN)' },
-];
-
-const REGION_PLATFORMS = {
-  americas: 'americas.api.riotgames.com',
-  europe: 'europe.api.riotgames.com',
-  asia: 'asia.api.riotgames.com',
-  sea: 'sea.api.riotgames.com',
-};
+import { REGIONS } from './lib/region';
 
 function App() {
   const [gameName, setGameName] = useState('');
   const [tagLine, setTagLine] = useState('');
   const [region, setRegion] = useState('americas');
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegionChange = (e) => {
     setRegion(e.target.value);
   };
 
-  const fetchPlayerData = async () => {
+  const handleSearch = () => {
     if (!gameName.trim() || !tagLine.trim()) {
       setError('Por favor completa todos los campos');
       return;
     }
 
     setError(null);
-    setLoading(true);
-    
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-      const response = await fetch(
-        `${apiUrl}/api/player?gameName=${encodeURIComponent(gameName)}&tagLine=${encodeURIComponent(tagLine)}&region=${region}`
-      );
-      
-      if (!response.ok) {
-        throw new Error('Jugador no encontrado');
-      }
-      
-      const data = await response.json();
-      data.region = region;
-      data.platform = REGION_PLATFORMS[region];
-      navigate('/player', { state: { playerData: data } });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    const params = new URLSearchParams({
+      region,
+      gameName: gameName.trim(),
+      tagLine: tagLine.trim(),
+    });
+    navigate(`/player?${params.toString()}`);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
-      fetchPlayerData();
+      handleSearch();
     }
   };
 
@@ -125,9 +96,8 @@ function App() {
               </div>
             )}
 
-            <Button 
-              onClick={fetchPlayerData} 
-              loading={loading}
+            <Button
+              onClick={handleSearch}
               className="w-full mt-6"
               size="lg"
             >

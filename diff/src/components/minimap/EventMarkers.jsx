@@ -1,0 +1,38 @@
+/**
+ * Markers for events that carry exact coordinates. Ward events are
+ * structurally excluded upstream (positionedEvents) because Riot does not
+ * publish ward positions — nothing here may ever draw one.
+ */
+export function EventMarkers({ markers }) {
+  return (
+    <g>
+      {(markers || []).map((marker) => (
+        <g key={marker.id} transform={`translate(${marker.x} ${marker.y})`}>
+          {renderGlyph(marker.type)}
+          <title>{marker.label}</title>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+function renderGlyph(type) {
+  switch (type) {
+    case 'CHAMPION_KILL':
+    case 'CHAMPION_SPECIAL_KILL':
+      return (
+        <g stroke="var(--color-lol-loss)" strokeWidth={2} strokeLinecap="round">
+          <line x1={-4} y1={-4} x2={4} y2={4} />
+          <line x1={4} y1={-4} x2={-4} y2={4} />
+        </g>
+      );
+    case 'ELITE_MONSTER_KILL':
+      return <rect x={-4} y={-4} width={8} height={8} transform="rotate(45)" fill="var(--color-lol-gold-400)" />;
+    case 'BUILDING_KILL':
+      return <rect x={-4} y={-4} width={8} height={8} fill="none" stroke="var(--color-lol-gold-600)" strokeWidth={2} />;
+    case 'TURRET_PLATE_DESTROYED':
+      return <rect x={-3} y={-3} width={6} height={6} fill="var(--color-lol-gold-600)" opacity={0.8} />;
+    default:
+      return <circle r={3} fill="currentColor" />;
+  }
+}

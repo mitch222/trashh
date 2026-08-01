@@ -1,90 +1,31 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Button, Card, Badge, StatCard } from './components/ui';
+import { useEffect, useState } from 'react';
 import MatchItem from './MatchItem';
+import { usePlayerData } from './hooks/usePlayerData';
+import { getProfileIconUrl } from './lib/items';
 
 function PlayerPage() {
-  const location = useLocation();
-  const { playerData } = location.state || {};
-  const [matchData, setMatchData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [searchParams] = useSearchParams();
+  const region = searchParams.get('region');
+  const gameName = searchParams.get('gameName');
+  const tagLine = searchParams.get('tagLine');
   const [activeTab, setActiveTab] = useState('overview');
+  const [iconFailed, setIconFailed] = useState(false);
 
+  // A stale iconFailed from a previous search must not hide the next
+  // player's otherwise-valid icon.
   useEffect(() => {
-    if (playerData && playerData.puuid) {
-      const fetchMatchData = async () => {
-        setLoading(true);
-        try {
-          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
-          const response = await fetch(
-            `${apiUrl}/api/match?puuid=${playerData.puuid}&region=${playerData.region}`
-          );
-          if (!response.ok) throw new Error('Error fetching match data.');
-          const data = await response.json();
-          setMatchData(data);
-        } catch (err) {
-          setError(err.message);
-        } finally {
-          setLoading(false);
-        }
-      };
+    setIconFailed(false);
+  }, [region, gameName, tagLine]);
 
-      fetchMatchData();
-    }
-  }, [playerData]);
+  const {
+    matches, stats, profileIconId, loading, error, hasMore, loadingMore, loadMoreMatches,
+  } = usePlayerData({ region, gameName, tagLine });
+  const profileIconUrl = getProfileIconUrl(profileIconId);
 
-  const stats = useMemo(() => {
-    if (!matchData || matchData.length === 0) return null;
-
-    const totals = matchData.reduce((acc, match) => {
-      const player = match.participants.find(p => p.summonerName === playerData.gameName);
-      if (!player) return acc;
-      
-      return {
-        games: acc.games + 1,
-        wins: acc.wins + (player.win ? 1 : 0),
-        kills: acc.kills + player.kills,
-        deaths: acc.deaths + player.deaths,
-        assists: acc.assists + player.assists,
-        visionScore: acc.visionScore + (player.visionScore || 0),
-        wardsPlaced: acc.wardsPlaced + (player.wardsPlaced || 0),
-        wardsDestroyed: acc.wardsDestroyed + (player.wardsDestroyed || 0),
-        visionWardsBought: acc.visionWardsBought + (player.visionWardsBoughtInGame || 0),
-        controlWardsPlaced: acc.controlWardsPlaced + (player.controlWardsPlaced || 0),
-        timeCCingOthers: acc.timeCCingOthers + (player.timeCCingOthers || 0),
-        healing: acc.healing + (player.healing || 0),
-        healingDoneToAllies: acc.healingDoneToAllies + (player.healingDoneToAllies || 0),
-        shielding: acc.shielding + (player.shielding || 0),
-        goldEarned: acc.goldEarned + (player.goldEarned || 0),
-        damageDealt: acc.damageDealt + (player.totalDamageDealtToChampions || 0),
-      };
-    }, { 
-      games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, 
-      visionScore: 0, wardsPlaced: 0, wardsDestroyed: 0,
-      visionWardsBought: 0, controlWardsPlaced: 0, timeCCingOthers: 0,
-      healing: 0, healingDoneToAllies: 0, shielding: 0,
-      goldEarned: 0, damageDealt: 0
-    });
-
-    const winRate = totals.games > 0 ? ((totals.wins / totals.games) * 100).toFixed(1) : 0;
-    const kda = totals.deaths > 0 
-      ? ((totals.kills + totals.assists) / totals.deaths).toFixed(2)
-      : (totals.kills + totals.assists).toFixed(2);
-    const avgVision = totals.games > 0 ? (totals.visionScore / totals.games).toFixed(1) : 0;
-    const avgWardsPlaced = totals.games > 0 ? (totals.wardsPlaced / totals.games).toFixed(1) : 0;
-    const avgWardsDestroyed = totals.games > 0 ? (totals.wardsDestroyed / totals.games).toFixed(1) : 0;
-    const avgHealing = totals.games > 0 ? Math.round(totals.healing / totals.games) : 0;
-    const avgGold = totals.games > 0 ? Math.round(totals.goldEarned / totals.games) : 0;
-
-    return { 
-      ...totals, winRate, kda, avgVision, avgWardsPlaced, avgWardsDestroyed,
-      avgHealing, avgGold
-    };
-  }, [matchData, playerData]);
-
-  if (!playerData) {
+  if (!region || !gameName || !tagLine) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-lol-dark-500">
         <Header />
@@ -101,7 +42,7 @@ function PlayerPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-lol-dark-500">
       <Header />
-      
+
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-lol-blue-500 transition-colors mb-4">
@@ -113,19 +54,28 @@ function PlayerPage() {
 
           <div className="bg-white dark:bg-lol-dark-100 rounded-2xl shadow-md p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-lol-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-              </div>
-              
+              {profileIconUrl && !iconFailed ? (
+                <img
+                  src={profileIconUrl}
+                  alt={`Ícono de invocador de ${gameName}`}
+                  className="w-20 h-20 rounded-xl shadow-lg object-cover shrink-0"
+                  onError={() => setIconFailed(true)}
+                />
+              ) : (
+                <div className="w-20 h-20 bg-gradient-to-br from-lol-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                  <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </div>
+              )}
+
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {playerData.gameName}
-                  <span className="text-gray-500 ml-1">#{playerData.tagLine}</span>
+                  {gameName}
+                  <span className="text-gray-500 ml-1">#{tagLine}</span>
                 </h1>
                 <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <Badge variant="blue">{playerData.region.toUpperCase()}</Badge>
+                  <Badge variant="blue">{region.toUpperCase()}</Badge>
                   <Badge variant="support">Support Main</Badge>
                 </div>
               </div>
@@ -164,8 +114,8 @@ function PlayerPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`
                 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all
-                ${activeTab === tab.id 
-                  ? 'bg-lol-blue-500 text-white' 
+                ${activeTab === tab.id
+                  ? 'bg-lol-blue-500 text-white'
                   : 'bg-white dark:bg-lol-dark-100 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
@@ -202,30 +152,30 @@ function PlayerPage() {
           <>
             {activeTab === 'overview' && stats && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                <StatCard 
-                  label="Victorias" 
-                  value={stats.wins} 
+                <StatCard
+                  label="Victorias"
+                  value={stats.wins}
                   subValue={`${stats.games - stats.wins} derrotas`}
                   highlight
                 />
-                <StatCard 
-                  label="Kills" 
-                  value={stats.kills} 
+                <StatCard
+                  label="Kills"
+                  value={stats.kills}
                   subValue={`${(stats.kills / stats.games).toFixed(1)} / partido`}
                 />
-                <StatCard 
-                  label="Deaths" 
-                  value={stats.deaths} 
+                <StatCard
+                  label="Deaths"
+                  value={stats.deaths}
                   subValue={`${(stats.deaths / stats.games).toFixed(1)} / partido`}
                 />
-                <StatCard 
-                  label="Assists" 
-                  value={stats.assists} 
+                <StatCard
+                  label="Assists"
+                  value={stats.assists}
                   subValue={`${(stats.assists / stats.games).toFixed(1)} / partido`}
                 />
-                <StatCard 
-                  label="Vision Score" 
-                  value={stats.visionScore} 
+                <StatCard
+                  label="Vision Score"
+                  value={stats.visionScore}
                   subValue={`${stats.avgVision} promedio`}
                   icon={
                     <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,9 +184,9 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="KDA" 
-                  value={stats.kda} 
+                <StatCard
+                  label="KDA"
+                  value={stats.kda}
                   subValue="General"
                 />
               </div>
@@ -244,8 +194,8 @@ function PlayerPage() {
 
             {activeTab === 'vision' && stats && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard 
-                  label="Vision Score" 
+                <StatCard
+                  label="Vision Score"
                   value={stats.visionScore}
                   subValue="Total en partidas"
                   highlight
@@ -256,13 +206,13 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Promedio Vision" 
+                <StatCard
+                  label="Promedio Vision"
                   value={stats.avgVision}
                   subValue="Por partida"
                 />
-                <StatCard 
-                  label="Wards Placed" 
+                <StatCard
+                  label="Wards Placed"
                   value={stats.wardsPlaced}
                   subValue={`${stats.avgWardsPlaced} / partido`}
                   icon={
@@ -271,8 +221,8 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Wards Destroyed" 
+                <StatCard
+                  label="Wards Destroyed"
                   value={stats.wardsDestroyed}
                   subValue={`${stats.avgWardsDestroyed} / partido`}
                   icon={
@@ -281,8 +231,8 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Control Wards" 
+                <StatCard
+                  label="Control Wards"
                   value={stats.controlWardsPlaced}
                   subValue="Compradas"
                   icon={
@@ -291,8 +241,8 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Vision Wards" 
+                <StatCard
+                  label="Vision Wards"
                   value={stats.visionWardsBought}
                   subValue="Totales"
                 />
@@ -301,8 +251,8 @@ function PlayerPage() {
 
             {activeTab === 'engage' && stats && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard 
-                  label="Time CCing" 
+                <StatCard
+                  label="Time CCing"
                   value={`${(stats.timeCCingOthers / 60).toFixed(1)}m`}
                   subValue="Tiempo total CC"
                   icon={
@@ -311,14 +261,14 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Avg CC per Game" 
+                <StatCard
+                  label="Avg CC per Game"
                   value={`${(stats.timeCCingOthers / stats.games / 60).toFixed(1)}m`}
                   subValue="Por partida"
                   highlight
                 />
-                <StatCard 
-                  label="Gold Earned" 
+                <StatCard
+                  label="Gold Earned"
                   value={stats.goldEarned.toLocaleString()}
                   subValue={`${stats.avgGold.toLocaleString()} / partido`}
                   icon={
@@ -327,8 +277,8 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Damage Dealt" 
+                <StatCard
+                  label="Damage Dealt"
                   value={stats.damageDealt.toLocaleString()}
                   subValue="A campeones"
                 />
@@ -337,9 +287,9 @@ function PlayerPage() {
 
             {activeTab === 'core' && stats && (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard 
-                  label="Healing" 
-                  value={stats.healing.toLocaleString()}
+                <StatCard
+                  label="Healing"
+                  value={stats.totalHealSelfInclusive.toLocaleString()}
                   subValue={`${stats.avgHealing.toLocaleString()} / partido`}
                   highlight
                   icon={
@@ -348,13 +298,13 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Healing Allies" 
+                <StatCard
+                  label="Healing Allies"
                   value={stats.healingDoneToAllies.toLocaleString()}
                   subValue="A aliados"
                 />
-                <StatCard 
-                  label="Shielding" 
+                <StatCard
+                  label="Shielding"
                   value={stats.shielding.toLocaleString()}
                   subValue="Total absorbido"
                   icon={
@@ -363,8 +313,8 @@ function PlayerPage() {
                     </svg>
                   }
                 />
-                <StatCard 
-                  label="Assisted Kills" 
+                <StatCard
+                  label="Assisted Kills"
                   value={stats.assists}
                   subValue="Asistencias"
                   icon={
@@ -378,18 +328,27 @@ function PlayerPage() {
 
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Historial de Partidas</h2>
-              {matchData && matchData.length > 0 ? (
-                matchData.map((match, index) => (
-                  <MatchItem 
-                    key={match.id || index} 
-                    match={match} 
-                    playerName={playerData.gameName}
+              {matches && matches.length > 0 ? (
+                matches.map((match, index) => (
+                  <MatchItem
+                    key={match.id || index}
+                    match={match}
+                    playerName={gameName}
+                    region={region}
                   />
                 ))
               ) : (
                 <Card className="p-6">
                   <p className="text-center text-gray-500">No se encontraron partidas</p>
                 </Card>
+              )}
+
+              {hasMore && (
+                <div className="flex justify-center pt-2">
+                  <Button variant="secondary" disabled={loadingMore} onClick={loadMoreMatches}>
+                    {loadingMore ? 'Cargando...' : 'Cargar más partidas'}
+                  </Button>
+                </div>
               )}
             </div>
           </>

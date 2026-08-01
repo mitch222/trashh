@@ -39,4 +39,26 @@ export default [
       ],
     },
   },
+  {
+    files: ['**/*.test.{js,jsx}', 'e2e/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.vitest,
+      },
+    },
+  },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+        ...globals.vitest,
+      },
+    },
+    rules: {
+      ...js.configs.recommended.rules,
+    },
+  },
 ]

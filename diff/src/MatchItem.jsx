@@ -1,44 +1,33 @@
 import { useState } from 'react';
 import { Badge } from './components/ui';
+import { getSupport } from './lib/support';
+import { formatKDA, getKDAColor } from './lib/kda';
+import { getItemIcon, getChampionIconUrl, getChampionIconFallbackUrl } from './lib/items';
+import { formatCCTime } from './lib/format';
+import { MatchTimelinePanel } from './components/minimap/MatchTimelinePanel';
 
-const ITEM_VERSION = '16.8.1';
-
-function MatchItem({ match, playerName }) {
+function MatchItem({ match, playerName, region }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const team1 = match.participants.slice(0, 5);
-  const team2 = match.participants.slice(5, 10);
-  
+  const [expandedTab, setExpandedTab] = useState('supports');
+  const team1 = match.participants.filter((p) => p.teamId === 100);
+  const team2 = match.participants.filter((p) => p.teamId === 200);
+
+  // The minimap projection is calibrated for Summoner's Rift only — offering
+  // the tab on another map would silently misplace everything.
+  const canShowMap = match.gameMode === 'CLASSIC' && Boolean(region);
+  const tabs = [
+    { id: 'supports', label: 'Supports' },
+    ...(canShowMap ? [{ id: 'map', label: 'Minimapa' }] : []),
+  ];
+
   const currentPlayer = match.participants.find(p => p.summonerName === playerName);
   const isWin = currentPlayer?.win;
   const duration = match.duration;
   const minutes = Math.floor(duration / 60);
   const seconds = duration % 60;
 
-  const getSupport = (team) => {
-    return team.find(p => 
-      p.role === 'SUPPORT' || 
-      p.role === 'DUO_SUPPORT'
-      );
-  };
-  
   const blueSupport = getSupport(team1);
   const redSupport = getSupport(team2);
-
-  const formatKDA = (kills, deaths, assists) => `${kills} / ${deaths} / ${assists}`;
-
-  const getKDAColor = (kills, deaths, assists) => {
-    if (deaths === 0) return 'text-purple-500';
-    const kda = (kills + assists) / deaths;
-    if (kda >= 5) return 'text-green-500';
-    if (kda >= 3) return 'text-blue-500';
-    if (kda >= 2) return 'text-yellow-500';
-    return 'text-gray-500';
-  };
-
-  const getItemIcon = (itemId) => {
-    if (!itemId || itemId === 0) return null;
-    return `https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/item/${itemId}.png`;
-  };
 
   const renderItems = (participant) => {
     const items = [
@@ -84,17 +73,23 @@ function MatchItem({ match, playerName }) {
   };
 
   const renderSupportStats = (support) => {
-    if (!support) return null;
+    if (!support) {
+      return (
+        <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-center">
+          <p className="text-sm text-gray-500">Support no identificado</p>
+        </div>
+      );
+    }
     const isPlayer = support.summonerName === playerName;
 
     return (
       <div className={`p-4 rounded-lg ${isPlayer ? 'bg-lol-blue-500/20 ring-2 ring-lol-blue-500' : 'bg-gray-50 dark:bg-gray-800/50'}`}>
         <div className="flex items-center gap-3 mb-3">
-          <img 
-            src={`https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/${support.championName}.png`}
+          <img
+            src={getChampionIconUrl(support.championName)}
             alt={support.championName}
             className="w-10 h-10 rounded-lg border-2 border-gray-200 dark:border-gray-700"
-            onError={(e) => { e.target.src = `https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/Ahri.png`; }}
+            onError={(e) => { e.target.src = getChampionIconFallbackUrl(); }}
           />
           <div className="flex-1">
             <p className={`font-semibold ${isPlayer ? 'text-lol-blue-500' : 'text-gray-900 dark:text-white'}`}>
@@ -110,15 +105,15 @@ function MatchItem({ match, playerName }) {
             <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
             </svg>
-            <span className="text-gray-600 dark:text-gray-400">Healing:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">{support.totalHeal?.toLocaleString() || 0}</span>
+            <span className="text-gray-600 dark:text-gray-400">Healing (aliados):</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{support.healingDoneToAllies?.toLocaleString() || 0}</span>
           </div>
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-teal-500" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M7 2a1 1 0 00-.707 1.707L7 4.414v3.758a1 1 0 01-.293.707l-2 2A1 1 0 004 11h3v3a1 1 0 001 1h3a1 1 0 001-1v-3h3a1 1 0 00.707-1.707l-2-2A1 1 0 0013 8.172V4.414l.707-.707A1 1 0 0013 2H7zM5 6a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd"/>
+            <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
-            <span className="text-gray-600 dark:text-gray-400">Aliados:</span>
-            <span className="font-semibold text-gray-900 dark:text-white">{support.totalHealsOnTeammates?.toLocaleString() || 0}</span>
+            <span className="text-gray-600 dark:text-gray-400">Tiempo CC:</span>
+            <span className="font-semibold text-gray-900 dark:text-white">{formatCCTime(support.timeCCingOthers)}</span>
           </div>
           <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -161,11 +156,11 @@ function MatchItem({ match, playerName }) {
           ${isPlayer ? 'bg-lol-blue-500/20 ring-1 ring-lol-blue-500' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
         `}
       >
-        <img 
-          src={`https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/${participant.championName}.png`}
+        <img
+          src={getChampionIconUrl(participant.championName)}
           alt={participant.championName}
           className="w-6 h-6 rounded"
-          onError={(e) => { e.target.src = `https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/Ahri.png`; }}
+          onError={(e) => { e.target.src = getChampionIconFallbackUrl(); }}
         />
         <span className={`text-sm flex-1 truncate ${isPlayer ? 'font-bold text-lol-blue-500' : 'text-gray-700 dark:text-gray-300'}`}>
           {participant.summonerName}
@@ -195,8 +190,10 @@ function MatchItem({ match, playerName }) {
       }
       bg-white dark:bg-lol-dark-100 border border-gray-100 dark:border-gray-800
     `}>
-      <button 
+      <button
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-label="Ver detalles de la partida"
         className="w-full"
       >
         <div className="flex flex-col lg:flex-row">
@@ -219,11 +216,11 @@ function MatchItem({ match, playerName }) {
             </div>
             {currentPlayer && (
               <div className="flex items-center gap-3">
-                <img 
-                  src={`https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/${currentPlayer.championName}.png`}
+                <img
+                  src={getChampionIconUrl(currentPlayer.championName)}
                   alt={currentPlayer.championName}
                   className="w-14 h-14 rounded-lg border-2 border-gray-200 dark:border-gray-700"
-                  onError={(e) => { e.target.src = `https://ddragon.leagueoflegends.com/cdn/${ITEM_VERSION}/img/champion/Ahri.png`; }}
+                  onError={(e) => { e.target.src = getChampionIconFallbackUrl(); }}
                 />
                 <div>
                   <p className="font-bold text-gray-900 dark:text-white">
@@ -266,28 +263,61 @@ function MatchItem({ match, playerName }) {
 
       {isExpanded && (
         <div className="border-t border-gray-100 dark:border-gray-800 p-4 bg-gray-50/50 dark:bg-gray-900/50">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
-            </svg>
-            Comparación de Supports
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                Support Azul
-              </p>
-              {renderSupportStats(blueSupport)}
-            </div>
-            <div>
-              <p className="text-xs text-red-600 dark:text-red-400 font-medium mb-2 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                Support Rojo
-              </p>
-              {renderSupportStats(redSupport)}
-            </div>
+          <div className="flex gap-2 mb-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setExpandedTab(tab.id)}
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all
+                  ${expandedTab === tab.id
+                    ? 'bg-lol-blue-500 text-white'
+                    : 'bg-white dark:bg-lol-dark-100 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
+
+          {expandedTab === 'supports' && (
+            <>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                </svg>
+                Comparación de Supports
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 font-medium mb-2 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    Support Azul
+                  </p>
+                  {renderSupportStats(blueSupport)}
+                </div>
+                <div>
+                  <p className="text-xs text-red-600 dark:text-red-400 font-medium mb-2 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                    Support Rojo
+                  </p>
+                  {renderSupportStats(redSupport)}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Mounted only on selection, so the timeline request needs explicit
+              intent — expanding a row to read KDAs costs nothing. */}
+          {expandedTab === 'map' && (
+            <MatchTimelinePanel
+              match={match}
+              region={region}
+              blueSupport={blueSupport}
+              redSupport={redSupport}
+            />
+          )}
         </div>
       )}
     </div>

@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(disown)",
+      "Bash(gh run *)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s https://api.github.com/repos/mitch222/trashh)",
+      "Bash(curl -sL -o /tmp/claude-1000/-home-mitch-trashh/0223c13d-28f6-40f6-b207-3aa0a305792e/scratchpad/job_log.txt https://api.github.com/repos/mitch222/trashh/actions/jobs/91429120318/logs)",
+      "Bash(curl -s https://api.github.com/repos/mitch222/trashh/actions/jobs/91429120318)",
+      "Bash(python3 -m json.tool)",
+      "Bash(git stash *)",
+      "Bash(command -v nvm)",
+      "Bash(which docker *)",
+      "Read(//usr/local/n/versions/**)",
+      "Bash(curl -sL -o node20.tar.xz https://nodejs.org/dist/v20.18.1/node-v20.18.1-linux-x64.tar.xz)",
+      "Bash(mkdir -p node20)",
+      "Bash(tar -xJf node20.tar.xz -C node20 --strip-components=1)",
+      "Bash(node20/bin/node --version)",
+      "Bash(rm -rf /tmp/claude-1000/-home-mitch-trashh/0223c13d-28f6-40f6-b207-3aa0a305792e/scratchpad/node20*)",
+      "Bash(curl -s http://localhost:3000/ -o /dev/null -w \"%{http_code}\\\\n\")"
+    ]
+  }
+}

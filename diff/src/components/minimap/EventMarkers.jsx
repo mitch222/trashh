@@ -1,14 +1,24 @@
+import { getChampionIconUrl, getChampionIconFallbackUrl } from '../../lib/items';
+
+const PORTRAIT_EVENT_TYPES = new Set(['CHAMPION_KILL', 'CHAMPION_SPECIAL_KILL']);
+const DEATH_RADIUS = 8;
+
 /**
  * Markers for events that carry exact coordinates. Ward events are
  * structurally excluded upstream (positionedEvents) because Riot does not
  * publish ward positions — nothing here may ever draw one.
+ *
+ * Kills draw the victim's own portrait, desaturated to gray, rather than a
+ * generic glyph — but only when a victim champion could actually be
+ * resolved (`marker.championName`). Otherwise they fall back to the X, same
+ * as every other unidentifiable case.
  */
 export function EventMarkers({ markers }) {
   return (
     <g>
       {(markers || []).map((marker) => (
         <g key={marker.id} transform={`translate(${marker.x} ${marker.y})`}>
-          {renderGlyph(marker.type)}
+          {renderGlyph(marker)}
           <title>{marker.label}</title>
         </g>
       ))}
@@ -16,8 +26,12 @@ export function EventMarkers({ markers }) {
   );
 }
 
-function renderGlyph(type) {
-  switch (type) {
+function renderGlyph(marker) {
+  if (PORTRAIT_EVENT_TYPES.has(marker.type) && marker.championName) {
+    return <DeathPortrait id={marker.id} championName={marker.championName} />;
+  }
+
+  switch (marker.type) {
     case 'CHAMPION_KILL':
     case 'CHAMPION_SPECIAL_KILL':
       return (
@@ -35,4 +49,37 @@ function renderGlyph(type) {
     default:
       return <circle r={3} fill="currentColor" />;
   }
+}
+
+/** The victim's portrait in gray, ringed in red so it still reads as a kill. */
+function DeathPortrait({ id, championName }) {
+  const clipId = `death-clip-${id}`;
+  return (
+    <>
+      <defs>
+        <clipPath id={clipId}>
+          <circle r={DEATH_RADIUS} />
+        </clipPath>
+      </defs>
+      <circle
+        r={DEATH_RADIUS}
+        fill="var(--color-lol-dark-500)"
+        stroke="var(--color-lol-loss)"
+        strokeWidth={1.5}
+      />
+      <image
+        href={getChampionIconUrl(championName)}
+        x={-DEATH_RADIUS}
+        y={-DEATH_RADIUS}
+        width={DEATH_RADIUS * 2}
+        height={DEATH_RADIUS * 2}
+        clipPath={`url(#${clipId})`}
+        preserveAspectRatio="xMidYMid slice"
+        pointerEvents="none"
+        style={{ filter: 'grayscale(1) brightness(0.85)' }}
+        // eslint-disable-next-line react/no-unknown-property -- onerror is valid on SVG <image>; the plugin's allowlist just doesn't include it.
+        onError={(e) => e.target.setAttribute('href', getChampionIconFallbackUrl())}
+      />
+    </>
+  );
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HeatmapLayer } from './HeatmapLayer';
 import { ChampionDots } from './ChampionDots';
 import { EventMarkers } from './EventMarkers';
+import { StructureMarkers } from './StructureMarkers';
 import { getMinimapUrl, getMinimapFallbackUrl, MINIMAP_SIZE } from '../../lib/map';
 import { isSupportedMap } from '../../lib/mapCoords';
 
@@ -17,6 +18,8 @@ export function Minimap({
   heatLayers = [],
   markers = [],
   champions = [],
+  structures = [],
+  objectives = [],
   highlightIds = [],
   ariaLabel,
   className = '',
@@ -56,6 +59,7 @@ export function Minimap({
         className="absolute inset-0 w-full h-full"
         aria-hidden="true"
       >
+        <StructureMarkers structures={structures} objectives={objectives} />
         <EventMarkers markers={markers} />
         <ChampionDots champions={champions} highlightIds={highlightIds} />
       </svg>

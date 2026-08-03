@@ -101,3 +101,13 @@ export function buildNameLookup(participants) {
   }
   return lookup;
 }
+
+/** Builds a participantId -> championName lookup, same rules as above. */
+export function buildChampionLookup(participants) {
+  const lookup = {};
+  for (const participant of participants || []) {
+    if (participant.participantId === null || participant.participantId === undefined) continue;
+    lookup[participant.participantId] = participant.championName;
+  }
+  return lookup;
+}

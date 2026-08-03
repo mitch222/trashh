@@ -3,6 +3,7 @@ import { Card, Button, Slider } from '../ui';
 import { Minimap } from './Minimap';
 import { SupportToggle } from './SupportToggle';
 import { MinuteDetailsPanel } from './MinuteDetailsPanel';
+import { EventFeed } from './EventFeed';
 import { useMatchTimeline } from '../../hooks/useMatchTimeline';
 import { MINIMAP_SIZE } from '../../lib/map';
 import { formatGameClock } from '../../lib/format';
@@ -12,10 +13,13 @@ import {
   projectSeries,
   buildTeamLookup,
   buildNameLookup,
+  buildChampionLookup,
 } from '../../lib/heatmap';
 import { buildWardWindows, activeWardsAt, summarizeWards, countWardsKilled } from '../../lib/wards';
 import { eventsInWindow, positionedEvents, describeEvent } from '../../lib/matchEvents';
 import { isInFountain } from '../../lib/mapCoords';
+import { structuresAt, OBJECTIVES } from '../../lib/structures';
+import { buildDeathWindows, deathStateAt } from '../../lib/deaths';
 
 const BLUE_RGB = '10, 102, 255';
 const RED_RGB = '232, 64, 87';
@@ -36,6 +40,10 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
   );
   const nameByParticipantId = useMemo(
     () => buildNameLookup(match.participants),
+    [match.participants]
+  );
+  const championByParticipantId = useMemo(
+    () => buildChampionLookup(match.participants),
     [match.participants]
   );
 
@@ -83,6 +91,44 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
 
   const currentFrame = timeline?.frames?.[frameIndex] ?? null;
 
+  // Deaths are exact; the respawn behind `deathState` is an estimate — see
+  // lib/deaths.js. Built once per timeline, evaluated per frame.
+  const deathWindows = useMemo(
+    () => (timeline ? buildDeathWindows(timeline.events, { levelAt }) : []),
+    [timeline, levelAt]
+  );
+
+  const deathState = useMemo(
+    () => (currentFrame ? deathStateAt(deathWindows, currentFrame.timestamp) : {}),
+    [deathWindows, currentFrame]
+  );
+
+  const structures = useMemo(() => {
+    if (!timeline || !currentFrame) return [];
+    return structuresAt(timeline.events, currentFrame.timestamp)
+      .map((structure) => {
+        const pixel = projectToPixels(structure, {
+          width: MINIMAP_SIZE,
+          height: MINIMAP_SIZE,
+        });
+        return pixel ? { ...structure, x: pixel.x, y: pixel.y } : null;
+      })
+      .filter(Boolean);
+  }, [timeline, currentFrame]);
+
+  // Fixed map furniture — no timeline input, so it is computed once.
+  const objectives = useMemo(
+    () =>
+      OBJECTIVES.map((objective) => {
+        const pixel = projectToPixels(objective, {
+          width: MINIMAP_SIZE,
+          height: MINIMAP_SIZE,
+        });
+        return pixel ? { ...objective, x: pixel.x, y: pixel.y } : null;
+      }).filter(Boolean),
+    []
+  );
+
   const champions = useMemo(() => {
     if (!currentFrame) return [];
     return match.participants
@@ -101,12 +147,13 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
             participant.participantId === blueSupport?.participantId ||
             participant.participantId === redSupport?.participantId,
           inFountain: isInFountain(position, participant.teamId),
+          deathState: deathState[participant.participantId] ?? null,
           x: pixel.x,
           y: pixel.y,
         };
       })
       .filter(Boolean);
-  }, [currentFrame, match.participants, blueSupport, redSupport]);
+  }, [currentFrame, match.participants, blueSupport, redSupport, deathState]);
 
   const windowEvents = useMemo(() => {
     if (!timeline || !currentFrame) return [];
@@ -132,10 +179,14 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
             x: pixel.x,
             y: pixel.y,
             label: describeEvent(event, { nameByParticipantId }),
+            // Only kills have a champion victim to portray; other event
+            // types keep their glyph.
+            championName:
+              event.victimId !== undefined ? championByParticipantId[event.victimId] : undefined,
           };
         })
         .filter(Boolean),
-    [windowEvents, nameByParticipantId]
+    [windowEvents, nameByParticipantId, championByParticipantId]
   );
 
   const wardSummary = useMemo(() => {
@@ -217,6 +268,8 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
             heatLayers={heatLayers}
             markers={markers}
             champions={champions}
+            structures={structures}
+            objectives={objectives}
             highlightIds={[blueSupport?.participantId, redSupport?.participantId].filter(Boolean)}
             ariaLabel={`Minimapa de la partida en el instante ${formatGameClock(currentFrame.timestamp)}`}
           />
@@ -242,20 +295,34 @@ export function MatchTimelinePanel({ match, region, blueSupport, redSupport }) {
             <strong>una muestra por campeón cada {Math.round(timeline.frameInterval / 1000)} s</strong>.
             Entre dos muestras no hay información: el mapa no muestra recorridos, solo posiciones
             puntuales. <strong>Riot no publica la posición de las wards</strong>, por lo que este
-            mapa nunca las representa espacialmente.
+            mapa nunca las representa espacialmente. Los retratos en gris son{' '}
+            <strong>una estimación</strong>: Riot informa la muerte pero nunca la reaparición, así
+            que se calcula a partir del nivel del campeón (gris parcial = dentro del margen de
+            duda). Las torres e inhibidores sí son exactos.
           </p>
         </div>
 
-        {wardSummary && wardBuckets && (
-          <MinuteDetailsPanel
-            timestamp={currentFrame.timestamp}
+        <div className="space-y-4">
+          {wardSummary && wardBuckets && (
+            <MinuteDetailsPanel
+              timestamp={currentFrame.timestamp}
+              frameInterval={timeline.frameInterval}
+              events={windowEvents}
+              wardSummary={wardSummary}
+              wardBuckets={wardBuckets}
+              nameByParticipantId={nameByParticipantId}
+            />
+          )}
+
+          <EventFeed
+            events={timeline.events}
+            frames={timeline.frames}
             frameInterval={timeline.frameInterval}
-            events={windowEvents}
-            wardSummary={wardSummary}
-            wardBuckets={wardBuckets}
+            selectedIndex={frameIndex}
+            onSelect={setFrameIndex}
             nameByParticipantId={nameByParticipantId}
           />
-        )}
+        </div>
       </div>
     </div>
   );

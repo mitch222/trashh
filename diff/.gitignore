@@ -18,6 +18,9 @@ playwright-report
 blob-report
 playwright/.cache
 
+# run-supportgg skill driver output — regenerated each run, not build artifacts
+.claude/skills/run-supportgg/screenshots/*.png
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -31,7 +34,5 @@ playwright/.cache
 
 .vercel
 
-*.env
-
-.vercel
+# Covers .env, .env.local, .env.production… — .env.local holds RIOT_API_KEY.
 .env*

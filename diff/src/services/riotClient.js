@@ -1,3 +1,5 @@
+import { DEFAULT_QUEUE } from '../../shared/queues.js';
+
 // Relative by default — NOT 'http://localhost:3000'. A hardcoded port broke
 // every request the moment `vite` ran on its actual default (5173) instead:
 // requests silently hit ERR_CONNECTION_REFUSED with no visible error in the
@@ -19,9 +21,12 @@ export async function fetchPlayerByRiotId({ gameName, tagLine, region }) {
   return response.json();
 }
 
-export async function fetchMatchHistory({ puuid, region, count = 10, start = 0 }, { signal } = {}) {
+export async function fetchMatchHistory(
+  { puuid, region, count = 10, start = 0, queue = DEFAULT_QUEUE },
+  { signal } = {}
+) {
   const response = await fetch(
-    `${API_URL}/api/match?puuid=${puuid}&region=${region}&count=${count}&start=${start}`,
+    `${API_URL}/api/match?puuid=${puuid}&region=${region}&count=${count}&start=${start}&queue=${encodeURIComponent(queue)}`,
     { signal }
   );
   if (!response.ok) {

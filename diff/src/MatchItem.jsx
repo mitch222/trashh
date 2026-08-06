@@ -116,6 +116,17 @@ function MatchItem({ match, playerName, region }) {
             <span className="font-semibold text-gray-900 dark:text-white">{formatCCTime(support.timeCCingOthers)}</span>
           </div>
           <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 019 10.172V9.242a31.16 31.16 0 00.4-2.51c.163.288.33.575.5.85.4.65.9 1.25 1.5 1.9A5 5 0 0113 13.5a3 3 0 01-.88 1.62z" clipRule="evenodd"/>
+            </svg>
+            {/* Damage to champions, not total damage: total includes minions
+                and jungle, which says nothing about a support's teamfighting. */}
+            <span className="text-gray-600 dark:text-gray-400">Daño a campeones:</span>
+            <span className="font-semibold text-gray-900 dark:text-white">
+              {support.totalDamageDealtToChampions?.toLocaleString() || 0}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
             <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clipRule="evenodd"/>
             </svg>

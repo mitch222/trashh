@@ -5,12 +5,18 @@ import { useEffect, useState } from 'react';
 import MatchItem from './MatchItem';
 import { usePlayerData } from './hooks/usePlayerData';
 import { getProfileIconUrl } from './lib/items';
+import { QUEUES, QUEUE_KEYS, DEFAULT_QUEUE, isValidQueue } from '../shared/queues.js';
 
 function PlayerPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const region = searchParams.get('region');
   const gameName = searchParams.get('gameName');
   const tagLine = searchParams.get('tagLine');
+  // Kept in the URL like every other input on this page, so a filtered view
+  // survives a refresh and can be shared. An unknown value (hand-edited URL)
+  // falls back instead of being sent to the API.
+  const queueParam = searchParams.get('queue');
+  const queue = isValidQueue(queueParam) ? queueParam : DEFAULT_QUEUE;
   const [activeTab, setActiveTab] = useState('overview');
   const [iconFailed, setIconFailed] = useState(false);
 
@@ -22,7 +28,13 @@ function PlayerPage() {
 
   const {
     matches, stats, profileIconId, loading, error, hasMore, loadingMore, loadMoreMatches,
-  } = usePlayerData({ region, gameName, tagLine });
+  } = usePlayerData({ region, gameName, tagLine, queue });
+
+  const selectQueue = (next) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('queue', next);
+    setSearchParams(params);
+  };
   const profileIconUrl = getProfileIconUrl(profileIconId);
 
   if (!region || !gameName || !tagLine) {
@@ -327,7 +339,32 @@ function PlayerPage() {
             )}
 
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Historial de Partidas</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Historial de Partidas</h2>
+
+                <div
+                  role="group"
+                  aria-label="Tipo de partida"
+                  className="inline-flex rounded-lg bg-gray-100 dark:bg-lol-dark-400 p-1"
+                >
+                  {QUEUE_KEYS.map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => selectQueue(key)}
+                      aria-pressed={queue === key}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                        queue === key
+                          ? 'bg-lol-blue-500 text-white'
+                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {QUEUES[key].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {matches && matches.length > 0 ? (
                 matches.map((match, index) => (
                   <MatchItem
@@ -339,7 +376,9 @@ function PlayerPage() {
                 ))
               ) : (
                 <Card className="p-6">
-                  <p className="text-center text-gray-500">No se encontraron partidas</p>
+                  <p className="text-center text-gray-500">
+                    No se encontraron partidas de {QUEUES[queue].label}
+                  </p>
                 </Card>
               )}
 

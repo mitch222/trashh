@@ -1,5 +1,14 @@
-import { riotApi, setCorsHeaders, handleOptions, delay } from './utils/api.js';
+import {
+  riotApi,
+  setCorsHeaders,
+  handleOptions,
+  rejectNonGet,
+  delay,
+  sendError,
+  badRequest,
+} from './utils/api.js';
 import { projectTimeline } from './lib/projectTimeline.js';
+import { isValidRegion, isValidMatchId, riotUrl } from '../shared/riotInput.js';
 
 const GLOBAL_TIMEOUT = 9000;
 // The timeline payload is 7-13x a match response (567 KB median, 1.97 MB max),
@@ -7,12 +16,10 @@ const GLOBAL_TIMEOUT = 9000;
 const TIMELINE_REQUEST_TIMEOUT = 7000;
 const MAX_CONTENT_LENGTH = 8 * 1024 * 1024;
 
-const MATCH_ID_PATTERN = /^[A-Z0-9]{2,5}_\d{6,}$/;
-const ROUTING_REGIONS = new Set(['americas', 'asia', 'europe', 'sea']);
-
 export default async function handler(req, res) {
   setCorsHeaders(req, res);
-  if (handleOptions(res)) return;
+  if (handleOptions(req, res)) return;
+  if (rejectNonGet(req, res)) return;
 
   let responded = false;
   const controller = new AbortController();
@@ -31,11 +38,12 @@ export default async function handler(req, res) {
       throw badRequest('Parámetros requeridos: matchId y region', 'BAD_REQUEST');
     }
     // Both values are interpolated into the Riot URL and `region` lands in the
-    // hostname, so they are validated rather than trusted.
-    if (!MATCH_ID_PATTERN.test(matchId)) {
+    // hostname, so they are validated rather than trusted. The rules live in
+    // shared/riotInput.js so all three endpoints enforce the same ones.
+    if (!isValidMatchId(matchId)) {
       throw badRequest('matchId inválido', 'INVALID_MATCH_ID');
     }
-    if (!ROUTING_REGIONS.has(region)) {
+    if (!isValidRegion(region)) {
       throw badRequest('Región inválida', 'INVALID_REGION');
     }
 
@@ -62,24 +70,18 @@ export default async function handler(req, res) {
     clearTimeout(timeout);
     if (!responded) {
       responded = true;
-      res.status(error.status || error.response?.status || 500).json({
-        error: error.message,
-        code: error.code || error.response?.status || 'INTERNAL_ERROR',
-      });
+      sendError(res, error, 'No se pudo cargar la línea de tiempo.');
     }
   }
 }
 
-function badRequest(message, code) {
-  const error = new Error(message);
-  error.status = 400;
-  error.code = code;
-  return error;
-}
 
 async function getMatchTimeline(matchId, region, signal, retries = 1) {
   try {
-    const url = `https://${region}.api.riotgames.com/lol/match/v5/matches/${matchId}/timeline`;
+    const url = riotUrl(
+      region,
+      `/lol/match/v5/matches/${encodeURIComponent(matchId)}/timeline`
+    );
     const { data } = await riotApi.get(url, {
       signal,
       timeout: TIMELINE_REQUEST_TIMEOUT,

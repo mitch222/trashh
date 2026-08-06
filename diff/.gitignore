@@ -36,3 +36,13 @@ playwright/.cache
 
 # Covers .env, .env.local, .env.production… — .env.local holds RIOT_API_KEY.
 .env*
+# …but the template must ship: it documents the required variables and holds
+# no values. Without this negation a fresh clone has no idea what to set.
+!.env.example
+
+# Coverage output (vitest --coverage) and the ESLint cache.
+coverage
+.eslintcache
+
+# Ad-hoc debugging scripts.
+.tmp_*

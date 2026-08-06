@@ -31,7 +31,7 @@ describe('usePlayerData pagination', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     expect(fetchMatchHistory).toHaveBeenCalledWith(
-      { puuid: 'puuid-1', region: 'americas', count: 10, start: 0 },
+      { puuid: 'puuid-1', region: 'americas', count: 10, start: 0, queue: 'solo' },
       expect.anything()
     );
     expect(result.current.matches).toHaveLength(1);
@@ -51,7 +51,7 @@ describe('usePlayerData pagination', () => {
     });
 
     expect(fetchMatchHistory).toHaveBeenLastCalledWith({
-      puuid: 'puuid-1', region: 'americas', count: 10, start: 10,
+      puuid: 'puuid-1', region: 'americas', count: 10, start: 10, queue: 'solo',
     });
     expect(result.current.matches.map((m) => m.id)).toEqual(['M1', 'M2']);
     expect(result.current.hasMore).toBe(false);
@@ -100,7 +100,7 @@ describe('usePlayerData pagination', () => {
 
     await waitFor(() => expect(result.current.matches?.[0]?.id).toBe('N1'));
     expect(fetchMatchHistory).toHaveBeenLastCalledWith(
-      { puuid: 'puuid-2', region: 'americas', count: 10, start: 0 },
+      { puuid: 'puuid-2', region: 'americas', count: 10, start: 0, queue: 'solo' },
       expect.anything()
     );
   });
@@ -121,5 +121,78 @@ describe('usePlayerData profileIconId', () => {
       usePlayerData({ region: 'americas', gameName: 'Faker', tagLine: 'KR1' })
     );
     expect(result.current.profileIconId).toBeNull();
+  });
+});
+
+describe('usePlayerData queue filter', () => {
+  it('passes the selected queue through to the API', async () => {
+    fetchMatchHistory.mockResolvedValue({ matches: [buildMatch('F1', 7)], hasMore: false });
+
+    const { result } = renderHook(() =>
+      usePlayerData({ region: 'americas', gameName: 'Faker', tagLine: 'KR1', queue: 'flex' })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(fetchMatchHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: 'flex', start: 0 }),
+      expect.anything()
+    );
+  });
+
+  // Offsets index into Riot's per-queue id list, so carrying one across a
+  // queue change would page into the wrong place and mix two histories.
+  it('restarts paging from zero when the queue changes', async () => {
+    fetchMatchHistory.mockResolvedValue({ matches: [buildMatch('M1', 1)], hasMore: true });
+
+    const { result, rerender } = renderHook((props) => usePlayerData(props), {
+      initialProps: { region: 'americas', gameName: 'Faker', tagLine: 'KR1', queue: 'solo' },
+    });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.loadMoreMatches();
+    });
+    expect(fetchMatchHistory).toHaveBeenLastCalledWith(
+      expect.objectContaining({ queue: 'solo', start: 10 })
+    );
+
+    fetchMatchHistory.mockResolvedValue({ matches: [buildMatch('X1', 1)], hasMore: false });
+    rerender({ region: 'americas', gameName: 'Faker', tagLine: 'KR1', queue: 'normal' });
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(fetchMatchHistory).toHaveBeenLastCalledWith(
+      expect.objectContaining({ queue: 'normal', start: 0 }),
+      expect.anything()
+    );
+  });
+
+  // Switching queue must not leave the previous queue's games on screen.
+  it('discards the previous queue\'s matches on switch', async () => {
+    fetchMatchHistory.mockResolvedValue({ matches: [buildMatch('SOLO1', 1)], hasMore: false });
+
+    const { result, rerender } = renderHook((props) => usePlayerData(props), {
+      initialProps: { region: 'americas', gameName: 'Faker', tagLine: 'KR1', queue: 'solo' },
+    });
+    await waitFor(() => expect(result.current.matches).toHaveLength(1));
+    expect(result.current.matches[0].id).toBe('SOLO1');
+
+    fetchMatchHistory.mockResolvedValue({ matches: [buildMatch('FLEX1', 1)], hasMore: false });
+    rerender({ region: 'americas', gameName: 'Faker', tagLine: 'KR1', queue: 'flex' });
+
+    await waitFor(() => expect(result.current.matches?.[0]?.id).toBe('FLEX1'));
+    expect(result.current.matches).toHaveLength(1);
+  });
+
+  it('defaults to ranked solo when no queue is given', async () => {
+    fetchMatchHistory.mockResolvedValue({ matches: [], hasMore: false });
+    const { result } = renderHook(() =>
+      usePlayerData({ region: 'americas', gameName: 'Faker', tagLine: 'KR1' })
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(fetchMatchHistory).toHaveBeenCalledWith(
+      expect.objectContaining({ queue: 'solo' }),
+      expect.anything()
+    );
   });
 });

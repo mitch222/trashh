@@ -21,6 +21,27 @@ describe('MatchItem support comparison card', () => {
     expect(screen.queryByText('9,200')).not.toBeInTheDocument();
   });
 
+  it('shows damage to champions, never the inflated total damage', () => {
+    const match = formatMatchData(matchRankedNormal);
+    render(<MatchItem match={match} playerName="BlueSupport" />);
+    expand();
+
+    // Fixture: totalDamageDealtToChampions=18000, totalDamageDealt=120000.
+    // The total counts minions and jungle, so it says nothing about a
+    // support's teamfighting — showing it would flatter every support with a
+    // six-figure number. One card per support, hence two matches.
+    expect(screen.getAllByText('18,000').length).toBeGreaterThanOrEqual(2);
+    expect(screen.queryByText('120,000')).not.toBeInTheDocument();
+  });
+
+  it('labels the damage metric so it cannot be read as total damage', () => {
+    const match = formatMatchData(matchRankedNormal);
+    render(<MatchItem match={match} playerName="BlueSupport" />);
+    expand();
+
+    expect(screen.getAllByText('Daño a campeones:').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('shows time spent CCing per support', () => {
     const match = formatMatchData(matchRankedNormal);
     render(<MatchItem match={match} playerName="BlueSupport" />);

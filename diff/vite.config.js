@@ -16,7 +16,12 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'https://trashh.vercel.app',
+          // Production by default, so `npm run dev` shows real data with no
+          // setup. Override with VITE_DEV_API_PROXY (e.g. http://localhost:3001
+          // running `vercel dev`) to develop against a local API — without it,
+          // backend changes are invisible in dev because every /api/* call is
+          // forwarded to the deployed version instead.
+          target: env.VITE_DEV_API_PROXY || 'https://trashh.vercel.app',
           changeOrigin: true,
           secure: false,
         },

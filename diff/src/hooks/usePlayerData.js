@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchPlayerByRiotId, fetchMatchHistory } from '../services/riotClient';
 import { aggregatePlayerStats } from '../lib/stats';
 import { platformForRegion } from '../lib/region';
+import { DEFAULT_QUEUE } from '../../shared/queues.js';
 
 const MATCHES_PAGE_SIZE = 10;
 
@@ -9,8 +10,12 @@ const MATCHES_PAGE_SIZE = 10;
  * Drives the player page purely from URL params (region/gameName/tagLine)
  * instead of react-router's in-memory location.state, so a direct/refreshed
  * navigation to /player?... still has everything it needs to fetch data.
+ *
+ * `queue` is part of the effect's dependencies on purpose: switching queue has
+ * to discard the loaded matches and restart paging from zero, because offsets
+ * index into Riot's per-queue id list and are meaningless across queues.
  */
-export function usePlayerData({ region, gameName, tagLine }) {
+export function usePlayerData({ region, gameName, tagLine, queue = DEFAULT_QUEUE }) {
   const [player, setPlayer] = useState(null);
   const [matches, setMatches] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,11 +23,10 @@ export function usePlayerData({ region, gameName, tagLine }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  // Raw offset into Riot's match-id list, NOT matches.length: this app only
-  // keeps ranked (queueId 420) games, so a page can yield fewer matches than
-  // ids requested. Advancing by the raw page size on every "load more" keeps
-  // pagination correct through non-ranked gaps instead of re-requesting ids
-  // already consumed.
+  // Raw offset into Riot's match-id list for the selected queue. Riot filters
+  // by queue at the source now, so a page normally yields exactly as many
+  // matches as ids requested; the offset is still tracked separately from
+  // matches.length so a match that fails to fetch cannot shift the window.
   const nextStartRef = useRef(0);
   const puuidRef = useRef(null);
 
@@ -50,7 +54,7 @@ export function usePlayerData({ region, gameName, tagLine }) {
         puuidRef.current = account.puuid;
 
         const { matches: firstPage, hasMore: more } = await fetchMatchHistory(
-          { puuid: account.puuid, region, count: MATCHES_PAGE_SIZE, start: 0 },
+          { puuid: account.puuid, region, count: MATCHES_PAGE_SIZE, start: 0, queue },
           { signal: controller.signal }
         );
         if (controller.signal.aborted) return;
@@ -65,7 +69,7 @@ export function usePlayerData({ region, gameName, tagLine }) {
     })();
 
     return () => controller.abort();
-  }, [region, gameName, tagLine]);
+  }, [region, gameName, tagLine, queue]);
 
   const loadMoreMatches = async () => {
     if (loadingMore || !hasMore || !puuidRef.current) return;
@@ -77,6 +81,7 @@ export function usePlayerData({ region, gameName, tagLine }) {
         region,
         count: MATCHES_PAGE_SIZE,
         start: nextStartRef.current,
+        queue,
       });
       nextStartRef.current += MATCHES_PAGE_SIZE;
       setHasMore(more);

@@ -2,7 +2,7 @@
 // asset URL in this app. Kept current by .github/workflows/update-ddragon-version.yml,
 // which opens a PR whenever Riot ships a new one — see that file for how it
 // verifies the new version's assets actually exist before bumping this.
-export const ITEM_VERSION = '16.15.1';
+export const ITEM_VERSION = '16.18.1';
 
 export function getItemIcon(itemId) {
   if (!itemId || itemId === 0) return null;
